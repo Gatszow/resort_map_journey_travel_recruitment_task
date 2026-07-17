@@ -22,14 +22,18 @@ npm start -- --map map.ascii --bookings bookings.json --port 3000
 ```
 
 > Without the `--`, npm swallows the flags itself (`npm warn Unknown cli config "--map"`) and the
-> app quietly starts with its defaults. To make that obvious, startup prints the file it actually
-> loaded and where the value came from:
+> app quietly starts with its defaults. So startup always prints the file it actually loaded and
+> where that value came from — every line reading `(default)` is the tell that the flags never
+> arrived:
 >
 > ```
 > Resort map: http://localhost:3000 (default)
 >   map:      /path/to/map.ascii (default) — 20x19
->   bookings: /path/to/bookings.json (--bookings) — 100 guests
+>   bookings: /path/to/bookings.json (default) — 100 guests
 > ```
+>
+> A value taken from a flag prints `(--map)`, and a port taken from the environment prints
+> `(PORT)`.
 
 | Flag | Default | Purpose |
 | --- | --- | --- |
@@ -43,9 +47,9 @@ process on one port — so one command really does start everything.
 ## Test it
 
 ```bash
-npm test                      # map parsing, booking rules, REST API (65 tests)
+npm test                      # map parsing, booking rules, REST API, tile maths (72 tests)
 npx playwright install chromium
-npm run test:e2e              # the booking flow in a real browser (5 tests)
+npm run test:e2e              # the booking flow in a real browser (6 tests)
 npm run typecheck
 ```
 
@@ -113,6 +117,11 @@ their own name. Room numbers are strings in `bookings.json`, so the form uses
 greyed out and crossed rather than `disabled` — a disabled button fires no click and could not
 explain itself.
 
+**The selected cabana is read from the map, not remembered.** The UI keeps the selected *id* and
+looks the tile up in the current map on every render. That is what lets a refresh after a `409`
+turn the open form into the "already booked" notice, instead of leaving the guest retrying a
+cabana someone else just took.
+
 **The path sprites are rotated, not duplicated.** Their base orientations were measured from the
 artwork (`arrowStraight` joins N–S, `arrowCornerSquare` N–E, `arrowSplit` N–S–E, `arrowEnd` S,
 `arrowCrossing` all four), then each `#` picks a sprite and a rotation from the neighbours it has.
@@ -132,7 +141,9 @@ the lot.
   checkout on Windows would otherwise put a stray `\r` at the end of every row.
 - There are 47 cabanas and 100 guests, so not everyone can have one at the same time. That is the
   data as given.
-- Assets are duplicated under `web/public/assets` so Vite can hash and copy them into the build.
+- Assets live in `web/public/assets`, which Vite copies into the build verbatim. The code names
+  them by literal path (`/assets/cabana.png`), so they must keep their filenames — which is exactly
+  what `public/` guarantees and why they are not imported and content-hashed.
 
 ## Layout
 
