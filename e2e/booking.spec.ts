@@ -78,14 +78,28 @@ test('recovers when someone else takes the cabana while the form is open', async
   // Another guest books it behind this page's back, so the open form is now stale.
   await request.post('/api/bookings', { data: { cabanaId: '10,11', room: '104', guestName: 'David Brown' } })
 
-  await page.getByLabel('Room number').fill('103')
-  await page.getByLabel('Guest name').fill('Carol White')
+  await page.getByLabel('Room number').fill('105')
+  await page.getByLabel('Guest name').fill('Eva Martinez')
   await page.getByRole('button', { name: 'Book cabana' }).click()
 
   // The map refreshes and the form gives way, rather than looping on the same 409.
   await expect(page.getByTestId('cabana-unavailable')).toBeVisible()
   await expect(page.getByTestId('booking-form')).toBeHidden()
   await expect(cabana(page, '10,11')).toHaveAttribute('data-booked', 'true')
+})
+
+test('confirms the booking even when refreshing the map afterwards fails', async ({ page }) => {
+  await page.goto('/')
+  await cabana(page, '11,11').click()
+  await page.getByLabel('Room number').fill('106')
+  await page.getByLabel('Guest name').fill('Frank Wilson')
+
+  // The booking itself goes through; only the refresh that follows it is broken.
+  await page.route('**/api/map', (route) => route.abort())
+  await page.getByRole('button', { name: 'Book cabana' }).click()
+
+  await expect(page.getByTestId('booking-confirmation')).toContainText('11,11')
+  await expect(page.getByTestId('booking-form')).toBeHidden()
 })
 
 test('rejects a name that does not match the room and keeps the form open', async ({ page }) => {
