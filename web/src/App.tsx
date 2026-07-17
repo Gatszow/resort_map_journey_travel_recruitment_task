@@ -33,6 +33,7 @@ export function App() {
   async function submitBooking(room: string, guestName: string) {
     if (!selected) return
     setPending(true)
+    setFormError(null)
     try {
       const booking = await createBooking({ cabanaId: selected.id, room, guestName })
       setMap(await fetchMap())
