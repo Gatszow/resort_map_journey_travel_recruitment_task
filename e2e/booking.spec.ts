@@ -29,6 +29,49 @@ test('draws the resort map from the API', async ({ page }) => {
   await page.getByTestId('resort-map').screenshot({ path: 'screenshot.png' })
 })
 
+test('puts every cabana in the cell its coordinates name', async ({ page }) => {
+  await page.goto('/')
+
+  const placed = await page.locator('[data-testid^="cabana-"]').evaluateAll((nodes) =>
+    nodes.map((node) => {
+      const [x, y] = node.getAttribute('data-testid')!.replace('cabana-', '').split(',').map(Number)
+      const box = node.getBoundingClientRect()
+      return { x, y, left: Math.round(box.left), top: Math.round(box.top) }
+    }),
+  )
+  expect(placed).toHaveLength(47)
+
+  // Cabanas sharing a map column must share a screen edge, and the edges must climb
+  // with the coordinate. Auto-placed tiles flowing around the pool break this at once.
+  const lefts = new Map<number, number>()
+  const tops = new Map<number, number>()
+  for (const tile of placed) {
+    if (lefts.has(tile.x)) expect(tile.left, `column ${tile.x}`).toBe(lefts.get(tile.x))
+    else lefts.set(tile.x, tile.left)
+
+    if (tops.has(tile.y)) expect(tile.top, `row ${tile.y}`).toBe(tops.get(tile.y))
+    else tops.set(tile.y, tile.top)
+  }
+
+  const ascending = (m: Map<number, number>) =>
+    [...m.keys()].sort((a, b) => a - b).map((k) => m.get(k)!)
+  expect(ascending(lefts)).toEqual([...ascending(lefts)].sort((a, b) => a - b))
+  expect(ascending(tops)).toEqual([...ascending(tops)].sort((a, b) => a - b))
+})
+
+test('draws a booked cabana differently from a free one', async ({ page, request }) => {
+  // The brief asks for a distinct visual style, which no DOM attribute can prove.
+  await request.post('/api/bookings', { data: { cabanaId: '13,11', room: '105', guestName: 'Eva Martinez' } })
+  await page.goto('/')
+
+  await expect(cabana(page, '13,11')).toHaveAttribute('data-booked', 'true')
+  await expect(cabana(page, '14,11')).toHaveAttribute('data-booked', 'false')
+
+  const booked = await cabana(page, '13,11').screenshot()
+  const free = await cabana(page, '14,11').screenshot()
+  expect(Buffer.compare(booked, free), 'a booked cabana renders identically to a free one').not.toBe(0)
+})
+
 test('books a free cabana and shows it as taken on the map', async ({ page }) => {
   await page.goto('/')
   await cabana(page, '5,11').click()
@@ -100,6 +143,27 @@ test('confirms the booking even when refreshing the map afterwards fails', async
 
   await expect(page.getByTestId('booking-confirmation')).toContainText('11,11')
   await expect(page.getByTestId('booking-form')).toBeHidden()
+})
+
+test('locks the submit button while the booking is in flight', async ({ page }) => {
+  await page.goto('/')
+  await cabana(page, '15,11').click()
+  await page.getByLabel('Room number').fill('107')
+  await page.getByLabel('Guest name').fill('Grace Lee')
+
+  // Hold the request open so the in-flight state is observable.
+  let release = () => {}
+  await page.route('**/api/bookings', async (route) => {
+    await new Promise<void>((resolve) => (release = resolve))
+    await route.continue()
+  })
+
+  const submit = page.getByRole('button', { name: /Book cabana|Booking/ })
+  await submit.click()
+  await expect(submit).toBeDisabled()
+
+  release()
+  await expect(page.getByTestId('booking-confirmation')).toBeVisible()
 })
 
 test('rejects a name that does not match the room and keeps the form open', async ({ page }) => {

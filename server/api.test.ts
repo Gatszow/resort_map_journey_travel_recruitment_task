@@ -84,13 +84,16 @@ describe('POST /api/bookings', () => {
     await request(app).post('/api/bookings').send({ cabanaId: FREE_CABANA, room: '999', guestName: 'Alice Smith' }).expect(400)
   })
 
+  // The message matters: without it these pass even with the blank-field guard deleted,
+  // because a blank value falls through to the guest lookup, which also answers 400.
   it.each([
-    ['a missing cabanaId', { ...ALICE }],
-    ['a blank room', { cabanaId: FREE_CABANA, room: '  ', guestName: 'Alice Smith' }],
-    ['a blank guest name', { cabanaId: FREE_CABANA, room: '101', guestName: '' }],
-  ])('rejects %s', async (_label, payload) => {
+    ['a missing cabanaId', { ...ALICE }, /please provide a cabana/i],
+    ['a blank cabanaId', { cabanaId: '   ', ...ALICE }, /please provide a cabana/i],
+    ['a blank room', { cabanaId: FREE_CABANA, room: '  ', guestName: 'Alice Smith' }, /please provide a room number/i],
+    ['a blank guest name', { cabanaId: FREE_CABANA, room: '101', guestName: '' }, /please provide a guest name/i],
+  ])('rejects %s', async (_label, payload, message) => {
     const { body } = await request(app).post('/api/bookings').send(payload).expect(400)
-    expect(body.error).toBeTruthy()
+    expect(body.error).toMatch(message)
   })
 
   it('rejects a cabana that is not on the map', async () => {
@@ -100,6 +103,14 @@ describe('POST /api/bookings', () => {
   it('rejects a tile that exists but is not a cabana', async () => {
     // "6,12" is in the middle of the pool.
     await request(app).post('/api/bookings').send({ cabanaId: '6,12', ...ALICE }).expect(404)
+  })
+
+  it('blames the cabana before the guest when both are wrong', async () => {
+    const { body } = await request(app)
+      .post('/api/bookings')
+      .send({ cabanaId: '99,99', room: '999', guestName: 'Nobody At All' })
+      .expect(404)
+    expect(body.error).toMatch(/does not exist/i)
   })
 
   it('refuses a cabana another guest already took', async () => {
@@ -141,6 +152,22 @@ describe('unknown API endpoints', () => {
   it('answer with JSON, not with the frontend', async () => {
     const { body } = await request(app).get('/api/nope').expect(404)
     expect(body.error).toBeTruthy()
+  })
+})
+
+describe('when something breaks on our side', () => {
+  class BrokenResort extends Resort {
+    override getMap(): never {
+      throw Object.assign(new Error('ENOENT /srv/secret/internals.db'), { status: 503 })
+    }
+  }
+
+  it('keeps our own error message to itself', async () => {
+    const broken = createApp(new BrokenResort(grid, guests))
+    const { body } = await request(broken).get('/api/map').expect(500)
+
+    expect(body.error).toBe('Something went wrong on our side.')
+    expect(JSON.stringify(body)).not.toMatch(/internals\.db/)
   })
 })
 

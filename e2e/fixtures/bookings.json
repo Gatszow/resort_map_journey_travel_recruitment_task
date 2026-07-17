@@ -4,5 +4,7 @@
   { "room": "103", "guestName": "Carol White" },
   { "room": "104", "guestName": "David Brown" },
   { "room": "105", "guestName": "Eva Martinez" },
-  { "room": "106", "guestName": "Frank Wilson" }
+  { "room": "106", "guestName": "Frank Wilson" },
+  { "room": "107", "guestName": "Grace Lee" },
+  { "room": "108", "guestName": "Henry Taylor" }
 ]

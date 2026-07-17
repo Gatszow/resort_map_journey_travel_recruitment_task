@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { MapTile } from './api.ts'
-import { poolArea, spriteFor } from './tiles.ts'
+import { findCabana, poolArea, spriteFor } from './tiles.ts'
 
 /** Builds a grid from map characters so the cases read like the .ascii file. */
 function grid(...rows: string[]): MapTile[][] {
@@ -10,7 +10,9 @@ function grid(...rows: string[]): MapTile[][] {
     p: { type: 'pool' },
     c: { type: 'chalet' },
   }
-  return rows.map((row) => [...row].map((char) => legend[char]!))
+  return rows.map((row, y) =>
+    [...row].map((char, x): MapTile => (char === 'W' ? { type: 'cabana', id: `${x},${y}`, booked: false } : legend[char]!)),
+  )
 }
 
 const sprite = (tiles: MapTile[][], x: number, y: number) => {
@@ -74,6 +76,20 @@ describe('other sprites', () => {
 
   it('leaves pool tiles to the water texture and the overlay', () => {
     expect(spriteFor(grid('p'), 0, 0)).toBeNull()
+  })
+})
+
+describe('findCabana', () => {
+  it('returns the cabana carrying that id', () => {
+    expect(findCabana(grid('.W', 'W.'), '0,1')).toEqual({ type: 'cabana', id: '0,1', booked: false })
+  })
+
+  it('returns null for an id no cabana has', () => {
+    expect(findCabana(grid('.W', 'W.'), '9,9')).toBeNull()
+  })
+
+  it('does not mistake another tile type for a cabana', () => {
+    expect(findCabana(grid('pc', '#.'), '0,0')).toBeNull()
   })
 })
 
