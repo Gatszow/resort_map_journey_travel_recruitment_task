@@ -61,14 +61,17 @@ test('puts every cabana in the cell its coordinates name', async ({ page }) => {
 
 test('draws a booked cabana differently from a free one', async ({ page, request }) => {
   // The brief asks for a distinct visual style, which no DOM attribute can prove.
-  await request.post('/api/bookings', { data: { cabanaId: '13,11', room: '105', guestName: 'Eva Martinez' } })
+  // Shoot the same cabana before and after: same cell, same parchment behind it, so
+  // any difference in the pixels is the booked styling and nothing else.
   await page.goto('/')
+  await expect(cabana(page, '13,11')).toHaveAttribute('data-booked', 'false')
+  const free = await cabana(page, '13,11').screenshot()
 
+  await request.post('/api/bookings', { data: { cabanaId: '13,11', room: '105', guestName: 'Eva Martinez' } })
+  await page.reload()
   await expect(cabana(page, '13,11')).toHaveAttribute('data-booked', 'true')
-  await expect(cabana(page, '14,11')).toHaveAttribute('data-booked', 'false')
-
   const booked = await cabana(page, '13,11').screenshot()
-  const free = await cabana(page, '14,11').screenshot()
+
   expect(Buffer.compare(booked, free), 'a booked cabana renders identically to a free one').not.toBe(0)
 })
 
