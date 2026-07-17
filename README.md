@@ -47,8 +47,14 @@ process on one port — so one command really does start everything.
 ## Test it
 
 ```bash
-npm test                      # map parsing, booking rules, REST API, tile maths (78 tests)
-npx playwright install chromium
+npx playwright install chromium   # one-time: the browser the UI tests drive
+npm run test:all                  # everything: 78 backend/unit + 10 browser tests
+```
+
+Or run the two layers on their own:
+
+```bash
+npm test                      # backend + logic: map parsing, booking rules, REST API, tile maths (78 tests)
 npm run test:e2e              # the booking flow in a real browser (10 tests)
 npm run typecheck
 ```
@@ -56,7 +62,8 @@ npm run typecheck
 `npm test` runs Vitest against the real Express app with the real `map.ascii` and `bookings.json`
 via Supertest — no mocks, no stubbed filesystem. `npm run test:e2e` builds and boots the app on
 port 4173 with a small fixture guest list, drives Chromium through it, and regenerates
-`screenshot.png`.
+`screenshot.png`. `npm run test:all` runs both, so a single command covers backend behaviour and
+the UI; they are kept separate too because only the browser layer needs a Chromium download.
 
 The suite was checked by breaking the code on purpose in 34 ways and seeing which ones the tests
 noticed. Seven slipped through and each is now covered — the tests for blank fields, for instance,

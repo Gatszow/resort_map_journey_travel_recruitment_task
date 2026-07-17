@@ -8,6 +8,7 @@
     "start": "vite build && tsx server/main.ts",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "test:all": "npm run test && npm run test:e2e",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
