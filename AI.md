@@ -80,6 +80,33 @@ because it never had the dialog semantics the name implied, and focus now moves 
 it swaps. I did not take everything — some of what it raised was latent rather than live, and I
 fixed those only where the fix was smaller than the argument.
 
+**7. Stop trusting the green tick — measure the tests.** A suite that passes proves nothing about a
+suite that would fail. So a multi-agent run broke the code on purpose in **34 ways** and recorded
+which breakages the tests noticed: **27 caught, 7 survived**. Every survivor was a real hole:
+
+- The blank-field tests asserted "400 with some error" — but a blank field produces exactly that
+  by falling through to the guest lookup, so they passed with the guard deleted. They had been
+  green for the wrong reason from the start.
+- Nothing combined a bad cabana with a bad guest, so the 404-before-400 precedence was free to
+  invert.
+- `findCabana` carries the entire cabana selection; gutting it to `return null` kept 72/72 green.
+- Deleting the explicit grid placement scrambled **30 of 47 cabanas** into the wrong cells — all
+  tests still passed, because they only ever touched cabanas in one row.
+- Deleting the booked-cabana CSS left a requirement of the brief resting on nothing.
+
+Writing the tests for those was not the end of it. The first version of the "a booked cabana looks
+different" test compared two *different* cabanas — but each sits over its own patch of the
+parchment background, so the pixels always differ and the test passed with the styling deleted. I
+had written exactly the kind of test this exercise was meant to catch. The honest version shoots
+the same cabana before and after booking, and I confirmed it fails when the styling goes.
+
+Two footnotes worth an interview conversation. First, one agent's report claimed the booked cabana
+rendered "pixel-identical" under its mutation; it did not — a free cabana keeps a green glow, so
+the requirement still held, weakly. Verifying the mutant rather than trusting the description
+changed the conclusion. Second, an agent ignored its instruction to work in a clone and mutated the
+real working tree mid-run; git caught it, but the lesson is to give agents a sandbox they cannot
+escape rather than an instruction they might.
+
 ## Prompts that did the work
 
 The useful prompts were the ones that refused to let the model be agreeable:

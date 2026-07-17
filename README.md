@@ -47,9 +47,9 @@ process on one port — so one command really does start everything.
 ## Test it
 
 ```bash
-npm test                      # map parsing, booking rules, REST API, tile maths (72 tests)
+npm test                      # map parsing, booking rules, REST API, tile maths (78 tests)
 npx playwright install chromium
-npm run test:e2e              # the booking flow in a real browser (7 tests)
+npm run test:e2e              # the booking flow in a real browser (10 tests)
 npm run typecheck
 ```
 
@@ -57,6 +57,11 @@ npm run typecheck
 via Supertest — no mocks, no stubbed filesystem. `npm run test:e2e` builds and boots the app on
 port 4173 with a small fixture guest list, drives Chromium through it, and regenerates
 `screenshot.png`.
+
+The suite was checked by breaking the code on purpose in 34 ways and seeing which ones the tests
+noticed. Seven slipped through and each is now covered — the tests for blank fields, for instance,
+asserted only "400 with some error", which a blank field produces anyway by falling through to the
+guest lookup, so they passed with the guard deleted. They assert the message now.
 
 ## The API
 
