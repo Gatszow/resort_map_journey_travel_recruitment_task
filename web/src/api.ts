@@ -14,13 +14,22 @@ export class ApiError extends Error {
   }
 }
 
+const UNREACHABLE = 'The resort is not responding. Please try again.'
+
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, init)
+  let response: Response
+  try {
+    response = await fetch(url, init)
+  } catch {
+    // Offline or server down: a raw "Failed to fetch" is not for a guest to read.
+    throw new ApiError(UNREACHABLE, 0)
+  }
+
   const body = await response.json().catch(() => null)
 
   if (!response.ok) {
     const message = (body as { error?: string } | null)?.error
-    throw new ApiError(message ?? 'The resort is not responding. Please try again.', response.status)
+    throw new ApiError(message ?? UNREACHABLE, response.status)
   }
   return body as T
 }

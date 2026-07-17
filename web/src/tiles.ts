@@ -1,5 +1,7 @@
 import type { MapTile, TileType } from './api.ts'
 
+export type Cabana = Extract<MapTile, { type: 'cabana' }>
+
 export interface TileSprite {
   src: string
   rotation: number
@@ -30,7 +32,7 @@ function pathSprite(connections: Set<string>): TileSprite {
     if (has('E') && has('W')) return { src: asset('arrowStraight'), rotation: 90 }
     const corners: Record<string, number> = { NE: 0, ES: 90, SW: 180, NW: 270 }
     const key = clockwise.filter(has).join('')
-    return { src: asset('arrowCornerSquare'), rotation: corners[key] ?? 0 }
+    return { src: asset('arrowCornerSquare'), rotation: corners[key]! }
   }
 
   if (size === 1) {
@@ -63,6 +65,15 @@ export function spriteFor(tiles: MapTile[][], x: number, y: number): TileSprite 
 
   const name = STATIC_SPRITES[tile.type]
   return name ? { src: asset(name), rotation: 0 } : null
+}
+
+export function findCabana(tiles: MapTile[][], id: string): Cabana | null {
+  for (const row of tiles) {
+    for (const tile of row) {
+      if (tile.type === 'cabana' && tile.id === id) return tile
+    }
+  }
+  return null
 }
 
 export interface PoolArea {

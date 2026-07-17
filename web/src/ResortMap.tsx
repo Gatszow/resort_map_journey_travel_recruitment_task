@@ -1,11 +1,9 @@
-import type { MapTile, MapView } from './api.ts'
+import type { MapView } from './api.ts'
 import { poolArea, poolImage, spriteFor } from './tiles.ts'
-
-type Cabana = Extract<MapTile, { type: 'cabana' }>
 
 interface Props {
   map: MapView
-  onCabanaClick: (cabana: Cabana) => void
+  onCabanaClick: (cabanaId: string) => void
 }
 
 export function ResortMap({ map, onCabanaClick }: Props) {
@@ -45,7 +43,7 @@ export function ResortMap({ map, onCabanaClick }: Props) {
               data-testid={`cabana-${tile.id}`}
               data-booked={tile.booked}
               aria-label={`Cabana ${tile.id}, ${tile.booked ? 'booked' : 'available'}`}
-              onClick={() => onCabanaClick(tile)}
+              onClick={() => onCabanaClick(tile.id)}
             >
               {image}
             </button>

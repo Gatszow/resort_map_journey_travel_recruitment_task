@@ -1,48 +1,64 @@
-import { useEffect, useState } from 'react'
-import { ApiError, createBooking, fetchMap, type Booking, type MapTile, type MapView } from './api.ts'
-import { BookingDialog } from './BookingDialog.tsx'
+import { useEffect, useRef, useState } from 'react'
+import { ApiError, createBooking, fetchMap, type Booking, type MapView } from './api.ts'
+import { BookingForm } from './BookingForm.tsx'
 import { Legend } from './Legend.tsx'
 import { ResortMap } from './ResortMap.tsx'
-
-type Cabana = Extract<MapTile, { type: 'cabana' }>
+import { findCabana } from './tiles.ts'
 
 export function App() {
   const [map, setMap] = useState<MapView | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [selected, setSelected] = useState<Cabana | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
   const [confirmation, setConfirmation] = useState<Booking | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
+  const panel = useRef<HTMLElement>(null)
 
   useEffect(() => {
     fetchMap().then(setMap, (error: Error) => setLoadError(error.message))
   }, [])
 
-  function selectCabana(cabana: Cabana) {
+  // Read the cabana off the current map rather than remembering the tile we clicked,
+  // so a refreshed map can turn the form into the "already booked" notice.
+  const selected = map && selectedId ? findCabana(map.tiles, selectedId) : null
+
+  useEffect(() => {
+    if (selectedId || confirmation) panel.current?.focus()
+  }, [selectedId, confirmation])
+
+  async function refreshMap() {
+    try {
+      setMap(await fetchMap())
+    } catch {
+      // Keep the map we have; it is only out of date, and the booking still stands.
+    }
+  }
+
+  function selectCabana(id: string) {
     setConfirmation(null)
     setFormError(null)
-    setSelected(cabana)
+    setSelectedId(id)
   }
 
   function backToMap() {
-    setSelected(null)
+    setSelectedId(null)
     setConfirmation(null)
     setFormError(null)
   }
 
   async function submitBooking(room: string, guestName: string) {
-    if (!selected) return
+    if (!selectedId) return
     setPending(true)
     setFormError(null)
     try {
-      const booking = await createBooking({ cabanaId: selected.id, room, guestName })
-      setMap(await fetchMap())
-      setSelected(null)
+      const booking = await createBooking({ cabanaId: selectedId, room, guestName })
+      // Confirm from the 201 before refreshing, so a failed refresh cannot hide a booking.
+      setSelectedId(null)
       setConfirmation(booking)
+      await refreshMap()
     } catch (error) {
-      // A conflict means our map is stale, so refresh it before explaining.
-      if (error instanceof ApiError && error.status === 409) setMap(await fetchMap().catch(() => map))
       setFormError((error as Error).message)
+      if (error instanceof ApiError && error.status === 409) await refreshMap()
     } finally {
       setPending(false)
     }
@@ -68,7 +84,7 @@ export function App() {
       <main className="content">
         {map ? <ResortMap map={map} onCabanaClick={selectCabana} /> : <p className="loading">Rolling out the map…</p>}
 
-        <aside className="sidebar">
+        <aside className="sidebar" ref={panel} tabIndex={-1}>
           {confirmation && (
             <div className="panel" data-testid="booking-confirmation">
               <h2>Cabana booked</h2>
@@ -95,7 +111,7 @@ export function App() {
           )}
 
           {selected && !selected.booked && (
-            <BookingDialog
+            <BookingForm
               cabanaId={selected.id}
               error={formError}
               pending={pending}

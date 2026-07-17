@@ -8,7 +8,7 @@ interface Props {
   onCancel: () => void
 }
 
-export function BookingDialog({ cabanaId, error, pending, onSubmit, onCancel }: Props) {
+export function BookingForm({ cabanaId, error, pending, onSubmit, onCancel }: Props) {
   const [room, setRoom] = useState('')
   const [guestName, setGuestName] = useState('')
 
