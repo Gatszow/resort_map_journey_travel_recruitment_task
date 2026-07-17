@@ -136,3 +136,47 @@ recover from — lived happily under 65 passing tests, and surfaced only when a 
 to attack the code rather than confirm it. Both are now pinned by tests that would have caught
 them. Using the model to argue against my own work was worth more than using it to produce the
 work.
+
+## What was verified, and how
+
+Nothing below is "the tests pass, so it works". Each claim was checked by exercising it:
+
+- **The whole thing runs from a clean checkout.** Cloned the repo anonymously over HTTPS (as a
+  reviewer would), ran `npm ci`, `npm test` (78 green), `npm run test:e2e` (10 green), and
+  `npm run typecheck` (clean). Also confirmed `map.ascii` survives GitHub as 398 bytes with zero
+  carriage returns, so the character-by-character parser cannot choke on a CRLF checkout.
+- **`--map` / `--bookings` are really wired in, not hardcoded.** Started the app against a
+  different 9×5 map and a one-guest bookings file: the API served that map, the fixture guest could
+  book, and a guest from the real `bookings.json` was correctly rejected.
+- **The startup log tells the truth about which files loaded**, including the tell (`(default)` on
+  every line) for a reviewer who forgets the `--` that npm needs to forward flags.
+- **`EADDRINUSE` fails cleanly**, verified against a port that was genuinely occupied — a one-line
+  message and exit 1, not a stack trace.
+- **The test suite itself was measured, not trusted.** Mutation testing broke the code in 34 ways;
+  27 breakages were caught, 7 slipped through, and each of those 7 is now covered by a test that I
+  confirmed fails on the broken code and passes on the fixed code.
+
+## What I am not fully sure of, and how I would close each gap
+
+I would rather name these than imply the work is airtight.
+
+1. **The audit is a sample, not a proof.** 34 mutations is a spot-check; `map.ts` and `poolArea`
+   were not mutated exhaustively, and one audit agent (test-quality) died on an API error and never
+   re-ran. *To be sure:* wire in a real mutation-testing tool (Stryker) in CI so the mutation score
+   is measured on every change instead of once by hand.
+2. **Only Chromium was exercised.** There is a responsive breakpoint in the CSS but no real
+   touch/mobile run, and no Firefox or WebKit. *To be sure:* add those projects to
+   `playwright.config.ts` and a mobile viewport — cheap, I left it out to keep the suite fast.
+3. **`npm test` runs no UI tests.** The brief asks for "UI responses to typical user actions"; those
+   live in the Playwright suite behind a separate `npm run test:e2e`, because it needs a build and a
+   browser. Both commands are documented, so the requirement is met, but a reviewer running only
+   `npm test` will not see the UI covered. *To be sure the intent is unmistakable:* a single
+   `npm run test:all` that runs both, or a one-line note at the top of the test section. Left as-is
+   for now because coupling a browser download into the default test command is its own surprise.
+4. **Concurrency is single-process and in-memory, as the brief allows.** The one-booking-per-room
+   and cabana-taken checks are not transactional; two truly simultaneous requests for the same
+   cabana are not stress-tested. For this task's scope that is fine, but I would say so rather than
+   imply it is bulletproof. *To be sure:* a load test firing concurrent bookings at one cabana.
+5. **Visual correctness rests on one screenshot and a same-cabana pixel diff.** That catches "booked
+   looks identical to free" but not subtler regressions. *To be sure:* snapshot-based visual
+   regression on the whole map, which I judged heavier than a recruitment task warrants.
