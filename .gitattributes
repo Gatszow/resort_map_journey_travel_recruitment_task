@@ -1,0 +1,2 @@
+# The map is parsed character by character: a CRLF checkout would corrupt every row.
+*.ascii text eol=lf
