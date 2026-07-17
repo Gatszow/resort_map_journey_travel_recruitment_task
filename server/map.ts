@@ -21,11 +21,11 @@ export function cabanaId(x: number, y: number): string {
 
 export function parseMap(text: string): ResortGrid {
   const lines = text.replace(/^\uFEFF/, '').split(/\r?\n/)
-  while (lines.length > 0 && lines[lines.length - 1].trim() === '') lines.pop()
+  // Only truly empty trailing lines go: a row of spaces is a row of empty tiles.
+  while (lines.length > 0 && lines[lines.length - 1] === '') lines.pop()
   if (lines.length === 0) throw new Error('Map file is empty.')
 
   const width = Math.max(...lines.map((line) => line.length))
-  if (width === 0) throw new Error('Map file has no columns.')
 
   // Short rows are padded rather than rejected: a map is a drawing, and trailing
   // empty space is routinely lost by editors.

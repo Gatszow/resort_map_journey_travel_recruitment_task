@@ -42,6 +42,10 @@ describe('parseMap', () => {
     expect(parseMap('# #').tiles[0]).toEqual(['path', 'empty', 'path'])
   })
 
+  it('keeps a trailing row of spaces, which the legend calls empty tiles', () => {
+    expect(parseMap('W\n \n ').height).toBe(3)
+  })
+
   it('rejects an unknown character, naming the 1-based position', () => {
     expect(() => parseMap('###\n#X#')).toThrow(/"X" at row 2, column 2/)
   })

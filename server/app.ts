@@ -32,8 +32,9 @@ export function createApp(resort: Resort, staticDir?: string) {
       return
     }
 
+    // Only client errors carry a message worth repeating; a 5xx message is ours, not theirs.
     const code = status ?? statusCode
-    if (Number.isInteger(code) && code! >= 400 && code! <= 599) {
+    if (Number.isInteger(code) && code! >= 400 && code! < 500) {
       res.status(code!).json({ error: message })
       return
     }

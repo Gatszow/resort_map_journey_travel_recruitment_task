@@ -84,8 +84,8 @@ export class Resort {
     return { width: this.grid.width, height: this.grid.height, tiles }
   }
 
-  getBookings(): Booking[] {
-    return [...this.bookingsByCabana.values()]
+  private bookingFor(room: string): Booking | undefined {
+    return [...this.bookingsByCabana.values()].find((booking) => normalize(booking.room) === normalize(room))
   }
 
   book(input: { cabanaId?: unknown; room?: unknown; guestName?: unknown }): Booking {
@@ -107,8 +107,7 @@ export class Resort {
       throw new BookingError(message, 409)
     }
 
-    const elsewhere = this.getBookings().find((b) => normalize(b.room) === normalize(guest.room))
-    if (elsewhere) {
+    if (this.bookingFor(guest.room)) {
       throw new BookingError(`Room ${guest.room} already has a cabana booked for today.`, 409)
     }
 
