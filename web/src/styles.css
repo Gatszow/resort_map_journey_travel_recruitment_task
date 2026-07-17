@@ -1,0 +1,250 @@
+:root {
+  --tile: 34px;
+  --ink: #2b2622;
+  --paper: #f3e4c3;
+  --water: #bfe3ec;
+  --booked: #b4472e;
+  --free: #2f7d55;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 1.5rem;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  color: var(--ink);
+  background: #e8dcc2;
+}
+
+.layout {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.header h1 {
+  margin: 0 0 0.25rem;
+  font-size: 1.6rem;
+}
+
+.header p {
+  margin: 0 0 1.25rem;
+  opacity: 0.75;
+}
+
+.content {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 1.5rem;
+}
+
+.map {
+  display: grid;
+  padding: 0.75rem;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  background-image: url("/assets/parchmentBasic.png");
+  background-size: cover;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 18%);
+  overflow-x: auto;
+}
+
+.tile {
+  position: relative;
+  width: var(--tile);
+  height: var(--tile);
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.tile img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+}
+
+.tile--pool {
+  background-image: url("/assets/textureWater.png");
+  background-size: var(--tile) var(--tile);
+  background-color: var(--water);
+}
+
+/* Sits on top of the water tiles, so it stays transparent. Must be positioned:
+   the tiles are, and positioned elements paint over static ones whatever the order. */
+.pool-overlay {
+  position: relative;
+  pointer-events: none;
+  padding: 4%;
+}
+
+.pool-overlay img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.tile--cabana {
+  cursor: pointer;
+  border-radius: 4px;
+  transition: transform 0.08s ease;
+}
+
+.tile--cabana:hover,
+.tile--cabana:focus-visible {
+  transform: scale(1.12);
+  outline: 2px solid var(--ink);
+}
+
+.tile--cabana.is-free img {
+  filter: drop-shadow(0 0 2px var(--free));
+}
+
+/* A booked cabana stays clickable — it must be able to explain itself. */
+.tile--cabana.is-booked {
+  cursor: not-allowed;
+}
+
+.tile--cabana.is-booked img {
+  opacity: 0.45;
+  filter: grayscale(1);
+}
+
+.tile--cabana.is-booked::after {
+  content: "";
+  position: absolute;
+  inset: 18%;
+  background:
+    linear-gradient(to top left, transparent 44%, var(--booked) 44% 56%, transparent 56%),
+    linear-gradient(to top right, transparent 44%, var(--booked) 44% 56%, transparent 56%);
+}
+
+.sidebar {
+  flex: 1 1 260px;
+  min-width: 260px;
+}
+
+.panel {
+  padding: 1rem 1.15rem;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  background: var(--paper);
+}
+
+.panel h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.15rem;
+}
+
+.panel__hint {
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+  opacity: 0.75;
+}
+
+.panel label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.panel input {
+  width: 100%;
+  margin-bottom: 0.85rem;
+  padding: 0.5rem;
+  border: 1px solid var(--ink);
+  border-radius: 4px;
+  background: #fffaf0;
+  font: inherit;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.button {
+  padding: 0.5rem 0.9rem;
+  border: 2px solid var(--ink);
+  border-radius: 4px;
+  background: var(--ink);
+  color: var(--paper);
+  font: inherit;
+  cursor: pointer;
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.button--ghost {
+  background: transparent;
+  color: var(--ink);
+}
+
+.message {
+  margin: 0 0 0.85rem;
+  padding: 0.55rem 0.7rem;
+  border-left: 4px solid;
+  border-radius: 3px;
+  font-size: 0.9rem;
+}
+
+.message--error {
+  border-color: var(--booked);
+  background: #f8ded6;
+}
+
+.message--warning {
+  border-color: #c98a1e;
+  background: #fbeed2;
+}
+
+.message--success {
+  border-color: var(--free);
+  background: #d9f0e2;
+}
+
+.legend {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.6rem;
+  font-size: 0.9rem;
+}
+
+.legend img,
+.legend__swatch {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+
+.legend__swatch {
+  background:
+    linear-gradient(to top left, transparent 44%, var(--booked) 44% 56%, transparent 56%),
+    linear-gradient(to top right, transparent 44%, var(--booked) 44% 56%, transparent 56%);
+}
+
+.loading {
+  padding: 2rem;
+}
+
+@media (max-width: 860px) {
+  :root {
+    --tile: 26px;
+  }
+}
