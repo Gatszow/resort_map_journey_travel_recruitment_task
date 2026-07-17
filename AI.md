@@ -56,6 +56,30 @@ had only checked that the *container* was visible, so it passed while the pictur
 assertion now checks the image itself, that every sprite decodes, and that the overlay stays
 positioned.
 
+**6. Scan the finished code as an adversary.** With everything green — typecheck, 65 tests, 5 E2E —
+a fresh agent was pointed at the whole repo and asked to hunt bugs, with the tests passing given as
+context rather than as reassurance. It found three real ones that a green suite had hidden:
+
+- **A successful booking could be reported as a failure.** The map refresh was awaited *before* the
+  confirmation was committed, so a failed refresh after a `201` sent control into the catch block:
+  the guest saw an error and an open form for a booking that had actually gone through.
+- **The refresh after a `409` did nothing it claimed to.** The selected cabana was a snapshot taken
+  at click time, so refreshing the map could never flip it to booked. Two browsers racing for one
+  cabana left the loser retrying the same conflict forever, with the "already booked" notice — the
+  whole point of the refresh — unreachable.
+- **`EADDRINUSE` escaped the CLI's error handling**, because `listen()` reports failure by event,
+  not by rejection. Every other startup failure had a clean one-line message; this one printed a
+  stack trace. It was also the failure I had hit myself during testing.
+
+It also caught two sentences in the README describing behaviour the code does not have, and that
+`Number()` was accepting `--port 0x50` as port 80 and `--port ""` as a random one, under an error
+message promising an integer.
+
+Its accessibility notes were fair and mostly taken: `BookingDialog` was renamed `BookingForm`
+because it never had the dialog semantics the name implied, and focus now moves to the panel when
+it swaps. I did not take everything — some of what it raised was latent rather than live, and I
+fixed those only where the fix was smaller than the argument.
+
 ## Prompts that did the work
 
 The useful prompts were the ones that refused to let the model be agreeable:
@@ -76,6 +100,12 @@ The useful prompts were the ones that refused to let the model be agreeable:
 The agent is quick but confidently wrong at the edges, and the errors it makes are plausible ones —
 "~60 cabanas" reads fine until you count. Everything load-bearing here was either measured
 (asset orientations, tile counts), verified against a primary source (npm, Express), or checked by
-running it and looking at the result. The one bug that reached the screen got there because a test
-asserted the container instead of the thing I actually cared about — which is the lesson I'd take
-from this exercise, not the tile maths.
+running it and looking at the result.
+
+The theme worth discussing is that a green test suite proved almost nothing on its own. The pool
+drawing was invisible while its test passed, because the test asserted the container instead of the
+image. The two worst bugs — a successful booking shown as a failure, and a `409` the UI could never
+recover from — lived happily under 65 passing tests, and surfaced only when a second agent was told
+to attack the code rather than confirm it. Both are now pinned by tests that would have caught
+them. Using the model to argue against my own work was worth more than using it to produce the
+work.
