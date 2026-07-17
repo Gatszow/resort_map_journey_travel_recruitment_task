@@ -49,7 +49,7 @@ process on one port — so one command really does start everything.
 ```bash
 npm test                      # map parsing, booking rules, REST API, tile maths (72 tests)
 npx playwright install chromium
-npm run test:e2e              # the booking flow in a real browser (6 tests)
+npm run test:e2e              # the booking flow in a real browser (7 tests)
 npm run typecheck
 ```
 
