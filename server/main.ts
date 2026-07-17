@@ -16,7 +16,9 @@ async function readOrFail(option: CliOption<string>, flag: string): Promise<stri
   }
 }
 
-const source = (option: CliOption<unknown>, flag: string) => (option.fromDefault ? '(default)' : `(${flag})`)
+function shows(option: CliOption<unknown>, flag: string): string {
+  return { default: '(default)', env: '(PORT)', flag: `(${flag})` }[option.source]
+}
 
 async function main() {
   const options = parseCliArgs(process.argv.slice(2))
@@ -24,10 +26,20 @@ async function main() {
   const guests = parseGuests(await readOrFail(options.bookings, '--bookings'))
 
   const resort = new Resort(grid, guests)
-  createApp(resort, webDir).listen(options.port.value, () => {
-    console.log(`\nResort map: http://localhost:${options.port.value} ${source(options.port, '--port')}`)
-    console.log(`  map:      ${options.map.value} ${source(options.map, '--map')} — ${grid.width}x${grid.height}`)
-    console.log(`  bookings: ${options.bookings.value} ${source(options.bookings, '--bookings')} — ${guests.length} guests\n`)
+  const server = createApp(resort, webDir).listen(options.port.value, () => {
+    console.log(`\nResort map: http://localhost:${options.port.value} ${shows(options.port, '--port')}`)
+    console.log(`  map:      ${options.map.value} ${shows(options.map, '--map')} — ${grid.width}x${grid.height}`)
+    console.log(`  bookings: ${options.bookings.value} ${shows(options.bookings, '--bookings')} — ${guests.length} guests\n`)
+  })
+
+  // listen() reports failure by event, so this never reaches main()'s catch on its own.
+  server.on('error', (error: NodeJS.ErrnoException) => {
+    const reason =
+      error.code === 'EADDRINUSE'
+        ? `port ${options.port.value} is already in use. Pass a free one with --port.`
+        : error.message
+    console.error(`\nCould not start the server: ${reason}\n`)
+    process.exit(1)
   })
 }
 
