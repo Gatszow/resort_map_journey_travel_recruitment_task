@@ -1,0 +1,6 @@
+[
+  { "room": "101", "guestName": "Alice Smith" },
+  { "room": "102", "guestName": "Bob Jones" },
+  { "room": "103", "guestName": "Carol White" },
+  { "room": "104", "guestName": "David Brown" }
+]
