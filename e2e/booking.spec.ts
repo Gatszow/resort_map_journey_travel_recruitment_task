@@ -16,7 +16,11 @@ test('draws the resort map from the API', async ({ page }) => {
   expect(errors).toEqual([])
 
   // Every sprite must actually decode: a typo in a filename still lays out fine.
-  const broken = await page.locator('.map img, .legend img').evaluateAll((images) =>
+  // Count first — with no images matched, "none are broken" would be vacuously true.
+  const sprites = page.locator('.map img, .legend img')
+  expect(await sprites.count()).toBeGreaterThan(47)
+
+  const broken = await sprites.evaluateAll((images) =>
     images.filter((image) => !(image as HTMLImageElement).complete || (image as HTMLImageElement).naturalWidth === 0).length,
   )
   expect(broken).toBe(0)
