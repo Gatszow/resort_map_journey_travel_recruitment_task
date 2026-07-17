@@ -70,6 +70,24 @@ test('explains that a booked cabana is not available, instead of offering the fo
   await expect(page.getByTestId('booking-form')).toBeHidden()
 })
 
+test('recovers when someone else takes the cabana while the form is open', async ({ page, request }) => {
+  await page.goto('/')
+  await cabana(page, '10,11').click()
+  await expect(page.getByTestId('booking-form')).toBeVisible()
+
+  // Another guest books it behind this page's back, so the open form is now stale.
+  await request.post('/api/bookings', { data: { cabanaId: '10,11', room: '104', guestName: 'David Brown' } })
+
+  await page.getByLabel('Room number').fill('103')
+  await page.getByLabel('Guest name').fill('Carol White')
+  await page.getByRole('button', { name: 'Book cabana' }).click()
+
+  // The map refreshes and the form gives way, rather than looping on the same 409.
+  await expect(page.getByTestId('cabana-unavailable')).toBeVisible()
+  await expect(page.getByTestId('booking-form')).toBeHidden()
+  await expect(cabana(page, '10,11')).toHaveAttribute('data-booked', 'true')
+})
+
 test('rejects a name that does not match the room and keeps the form open', async ({ page }) => {
   await page.goto('/')
   await cabana(page, '9,11').click()
